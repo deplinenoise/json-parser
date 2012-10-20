@@ -39,7 +39,7 @@
 #ifdef __cplusplus
    const struct _json_value json_value_none; /* zero-d by ctor */
 #else
-   const struct _json_value json_value_none = { 0 };
+   const struct _json_value json_value_none = { 0, 0, { 0 }, { 0 } };
 #endif
 
 #include <stdlib.h>
@@ -88,8 +88,17 @@ static void * json_alloc (json_state * state, unsigned long size, int zero)
       return 0;
    }
 
-   if (! (mem = zero ? calloc (size, 1) : malloc (size)))
-      return 0;
+   if (state->settings.settings & json_linear_allocate)
+   {
+     mem = linear_allocate(state->settings.allocator, size);
+     if (zero)
+       memset(mem, 0, size);
+   }
+   else
+   {
+     if (! (mem = zero ? calloc (size, 1) : malloc (size)))
+       return 0;
+   }
 
    return mem;
 }
@@ -182,7 +191,7 @@ static int new_value
 #define string_add(b)  \
    do { if (!state.first_pass) string [string_length] = b;  ++ string_length; } while (0);
 
-const static int
+static const int
    flag_next = 1, flag_reproc = 2, flag_need_comma = 4, flag_seek_value = 8, flag_exponent = 16,
    flag_got_exponent_sign = 32, flag_escaped = 64, flag_string = 128, flag_need_colon = 256,
    flag_done = 512;
@@ -668,15 +677,18 @@ e_failed:
    if (state.first_pass)
       alloc = root;
 
-   while (alloc)
+   if (0 == (state.settings.settings & json_linear_allocate))
    {
-      top = alloc->_reserved.next_alloc;
-      free (alloc);
-      alloc = top;
-   }
+     while (alloc)
+     {
+       top = alloc->_reserved.next_alloc;
+       free (alloc);
+       alloc = top;
+     }
 
-   if (!state.first_pass)
-      json_value_free (root);
+     if (!state.first_pass)
+       json_value_free (root);
+   }
 
    return 0;
 }

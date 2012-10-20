@@ -35,6 +35,8 @@
    #define json_char char
 #endif
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 
    #include <string.h>
@@ -44,14 +46,18 @@
 
 #endif
 
+struct linear_allocator;
+void* linear_allocate(struct linear_allocator* context, size_t size);
+
 typedef struct
 {
    unsigned long max_memory;
    int settings;
-
+   struct linear_allocator *allocator;
 } json_settings;
 
 #define json_relaxed_commas 1
+#define json_linear_allocate 2
 
 typedef enum
 {

@@ -95,6 +95,8 @@ static char *load_file(const char *filename)
         free(buffer);
         buffer = NULL;
       }
+
+      buffer[file_size] = '\0';
     }
 
     fclose(fp);
